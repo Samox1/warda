@@ -7,8 +7,10 @@ license = "Apache-2.0"
 # 3.12 only: every dependency is locked and tested together on 3.12, and pyarrow has no wheels past 3.13.
 requires-python = "==3.12.*"
 dependencies = [
-    "mlx>=0.32.4",
-    "mlx-lm>=0.32.2",
+    # MLX is Apple-silicon-only (training) until a training port is separately scoped; the rest of the toolchain
+    # stays installable on Linux/Windows laptops — MLX-dependent code imports it lazily and tests skip by capability.
+    "mlx>=0.32.4; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "mlx-lm>=0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
     "numpy>=2.5.4",
     "tokenizers>=0.23.3",
     "transformers>=5.20.1",
@@ -36,8 +38,9 @@ dev = [
 package = false
 
 [tool.pytest.ini_options]
-testpaths = ["pretrain", "scripts"]
+testpaths = ["pretrain", "scripts", "warda"]
 pythonpath = ["."]
+markers = ["requires_mlx: needs MLX (Apple Silicon); auto-skipped where mlx is missing"]
 
 [tool.ruff]
 line-length = 120
@@ -50,6 +53,7 @@ ignore = ["E501", "PLR2004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR091
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
 "**/test_*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
+"warda/tests/**/*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
 "pretrain/harness/pii_gen.py" = ["S311", "T201", "RUF002", "RUF003"] # Synthetic data uses non-crypto randomness, prints CLI status, and contains intentional Polish prompt punctuation.
 "pretrain/harness/tests/test_pii_gen.py" = ["S311"] # Tests exercise the synthetic generator's non-cryptographic randomness.
 "pretrain/sft/tests/test_englishize.py" = ["S311"] # Tests use seeded non-cryptographic randomness for reproducible output.
@@ -77,7 +81,7 @@ ignore = ["E501", "PLR2004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR091
 
 [tool.mypy]
 python_version = "3.12"
-files = ["pretrain", "scripts"]
+files = ["pretrain", "scripts", "warda"]
 ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true

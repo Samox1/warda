@@ -44,9 +44,9 @@ repos:
     rev: v2.4.0
     hooks:
       - id: mypy
-        name: mypy (pretrain, scripts)
+        name: mypy (pretrain, scripts, warda)
         args: [--config-file=pyproject.toml]
-        files: ^(pretrain|scripts)/
+        files: ^(pretrain|scripts|warda)/
         pass_filenames: false
         additional_dependencies: [types-requests]
 

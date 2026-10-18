@@ -30,6 +30,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from warda.schema import ACTIONS, CATEGORIES, DEST_CLASS, DEST_CLASSES
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "pretrain/work/harness_pii"
 RAW = OUT / "raw_cases.jsonl"
@@ -465,20 +467,6 @@ INBOUND = {
         "exactly 3 application log lines",
     ),
 }
-DEST_CLASS = {
-    "internal_repo": "internal",
-    "internal_tracker": "internal",
-    "internal_chat": "internal",
-    "local_model": "internal",
-    "client_repo": "client",
-    "client_tracker": "client",
-    "client_chat": "client",
-    "llm_provider": "llm",
-    "saas": "saas",
-    "public_repo": "public",
-    "public_search": "public",
-    "public_package": "public",
-}
 CLIENTS = [
     "Bursztyn Bank",
     "Nordwind Energie",
@@ -523,15 +511,6 @@ def destination_text(dest: str, lang: str, rng: random.Random) -> str:
     return (pl if lang == "pl" else en)[dest]
 
 
-CATEGORIES = [
-    "none",
-    "direct_pii",
-    "quasi_identifying",
-    "special_category",
-    "credential",
-    "confidential_business",
-    "test_fixture",
-]
 CATEGORY_TEXT = {
     "pl": [
         "brak danych chronionych",
@@ -586,7 +565,6 @@ CLASS_TEXT = {
         "public": "public places",
     },
 }
-ACTIONS = ["allow", "redact", "ask_user", "block"]
 ACTION_TEXT = {
     "pl": ["zezwól bez zmian", "zamaskuj chronione dane", "zapytaj użytkownika", "zablokuj"],
     "en": ["allow unchanged", "redact the protected data", "ask the user", "block"],
@@ -595,11 +573,10 @@ ACTION_VERB = {
     "pl": {"allow": "dozwolone", "redact": "zamaskuj", "ask_user": "zapytaj użytkownika", "block": "zablokuj"},
     "en": {"allow": "allowed", "redact": "redact", "ask_user": "ask the user", "block": "block"},
 }
-CLASSES = ["internal", "client", "llm", "saas", "public"]
 
 
 def _rule(internal, client, llm, saas, public):
-    return dict(zip(CLASSES, [internal, client, llm, saas, public], strict=False))
+    return dict(zip(DEST_CLASSES, [internal, client, llm, saas, public], strict=False))
 
 
 A, R, Q, B = "allow", "redact", "ask_user", "block"
@@ -662,7 +639,7 @@ def policy_text(policy: str, lang: str) -> str:
     lines = [POLICY_TITLE[lang][policy] + ":"]
     for category, rule in POLICIES[policy].items():
         groups: dict[str, list[str]] = {}
-        for cls in CLASSES:
+        for cls in DEST_CLASSES:
             groups.setdefault(rule[cls], []).append(CLASS_TEXT[lang][cls])
         parts = [f"{ACTION_VERB[lang][act]}: {', '.join(groups[act])}" for act in ACTIONS if act in groups]
         lines.append(f"- {CATEGORY_RULE_NAME[lang][category]}. " + "; ".join(parts) + ".")
