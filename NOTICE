@@ -1,0 +1,5 @@
+Warda
+Copyright 2026 Paweł Kiszczak and contributors. Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Training-data sources and their licences are listed in pretrain/README.md. No training data, model weights or generated
+datasets are included in this repository.
