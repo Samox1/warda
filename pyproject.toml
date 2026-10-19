@@ -40,7 +40,10 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["pretrain", "scripts", "warda"]
 pythonpath = ["."]
-markers = ["requires_mlx: needs MLX (Apple Silicon); auto-skipped where mlx is missing"]
+markers = [
+    "requires_mlx: needs MLX (Apple Silicon); auto-skipped where mlx is missing",
+    "slow: MLX model loads, fastText models, network; runs only with WARDA_SLOW=1",
+]
 
 [tool.ruff]
 line-length = 120
@@ -53,7 +56,6 @@ ignore = ["E501", "PLR2004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR091
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
 "**/test_*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
-"warda/tests/**/*.py" = ["S101"] # Assertions are the test suite's verification mechanism.
 "pretrain/harness/pii_gen.py" = ["S311", "T201", "RUF002", "RUF003"] # Synthetic data uses non-crypto randomness, prints CLI status, and contains intentional Polish prompt punctuation.
 "pretrain/harness/tests/test_pii_gen.py" = ["S311"] # Tests exercise the synthetic generator's non-cryptographic randomness.
 "pretrain/sft/tests/test_englishize.py" = ["S311"] # Tests use seeded non-cryptographic randomness for reproducible output.

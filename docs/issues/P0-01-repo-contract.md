@@ -57,12 +57,13 @@ need (actions, categories, destinations, channels) currently live only in `pretr
   (`grep -n "^ACTIONS\|^CLASSES\|^DEST_CLASS\|^CATEGORIES" pretrain/harness/pii_gen.py` returns nothing after).
 - Empty packages with `__init__.py`: `warda/guard`, `warda/service`, `warda/hooks`, `warda/bench`, `warda/label`,
   `warda/tests`.
-- `pyproject.toml`: `testpaths = ["pretrain", "scripts", "warda"]`; mypy `files` adds `"warda"`; ruff
-  per-file-ignores add `"warda/tests/**/*.py" = ["S101"]`. `.pre-commit-config.yaml` mypy `files:
-  ^(pretrain|scripts|warda)/`. `.github/workflows/tests.yml` unchanged (it runs `pytest -q` which picks up the new
-  testpaths).
-- `warda/tests/conftest.py` with `slow = pytest.mark.skipif(os.environ.get("WARDA_SLOW") != "1", reason="set
-  WARDA_SLOW=1")` exported for reuse.
+- `pyproject.toml`: `testpaths = ["pretrain", "scripts", "warda"]`; mypy `files` adds `"warda"`; registered
+  markers `requires_mlx` and `slow` (the existing `"**/tests/**/*.py" = ["S101"]` ignore already covers
+  `warda/tests`). `.pre-commit-config.yaml` mypy `files: ^(pretrain|scripts|warda)/`.
+  `.github/workflows/tests.yml` unchanged (it runs `pytest -q` which picks up the new testpaths).
+- Root `conftest.py`: `pytest_collection_modifyitems` skips `@pytest.mark.slow` tests unless `WARDA_SLOW=1` and
+  `@pytest.mark.requires_mlx` tests where `mlx` is not importable. Both conditions are read at collection time
+  (an import-time `skipif` would freeze the environment of whichever session imported the module first).
 
 ## Definition of done
 
@@ -76,8 +77,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 
 - `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_TEXT["en"]` positions; every
   `DEST_CLASS` value is in `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
-- `warda/tests/test_slow_marker.py`: a test marked `slow` is skipped without `WARDA_SLOW` (assert via
-  `pytest.mark` introspection in a `pytester` run: `pytester.runpytest()` reports `skipped=1`).
+- `warda/tests/test_slow_marker.py`: in a `pytester` run using the real root `conftest.py`, a test marked `slow`
+  is skipped without `WARDA_SLOW` (`skipped=1`) and runs with `WARDA_SLOW=1` (`passed=1`).
 
 ## Documentation
 

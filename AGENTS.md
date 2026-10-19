@@ -74,7 +74,7 @@ destinations, channels) live in `warda/schema.py`.
 
 - No real personal data, no work data, no secrets in prompts or code — the repo is public; fixtures and datasets
   must be fictional.
-- One task = one branch and worktree, named `<issue-id>-<slug>` (e.g. `P1-01-tier1-detectors`).
+- One task = one branch and worktree from `main`, named `<issue-id>-<slug>` (e.g. `P1-01-tier1-detectors`).
 - Small PRs; tests pass before merge.
 - Agents propose, humans decide on gold labels.
 
@@ -168,8 +168,9 @@ Key contracts:
 
 ## Testing & QA
 
-- pytest 9; root `conftest.py` (pytester plugin, `requires_mlx` capability skip), `warda/tests/conftest.py` (`slow`
-  marker); `testpaths = ["pretrain", "scripts", "warda"]`, `pythonpath = ["."]`.
+- pytest 9; root `conftest.py` loads the pytester plugin and skips `@pytest.mark.slow` tests unless `WARDA_SLOW=1`
+  and `@pytest.mark.requires_mlx` tests where `mlx` is absent (no `requires_mlx` tests exist yet — `model`/`train`/
+  `sft.py` are untested); `testpaths = ["pretrain", "scripts", "warda"]`, `pythonpath = ["."]`.
 - Tests live in `<package>/tests/test_*.py`: plain `test_*` functions with `assert`, `pytest.mark.parametrize`,
   `tmp_path`, `monkeypatch`, local fakes (e.g. fake `gh` calls). No test classes.
 - Covered: `warda/schema` and the slow marker, `harness/pii_gen`, `quality/{textstats,app}`, `sft` Englishization,

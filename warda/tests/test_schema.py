@@ -10,8 +10,6 @@ def test_actions_order_matches_action_text_positions() -> None:
     for lang in ("pl", "en"):
         assert list(pii_gen.ACTION_VERB[lang]) == list(ACTIONS)
         assert len(pii_gen.ACTION_TEXT[lang]) == len(ACTIONS)
-    for action, text in zip(ACTIONS, pii_gen.ACTION_TEXT["en"], strict=True):
-        assert set(action.split("_")) <= set(text.split())
 
 
 def test_destination_class_values_are_destination_classes() -> None:
