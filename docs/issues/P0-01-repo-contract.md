@@ -78,7 +78,9 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 - `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_TEXT["en"]` positions; every
   `DEST_CLASS` value is in `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
 - `warda/tests/test_slow_marker.py`: in a `pytester` run using the real root `conftest.py`, a test marked `slow`
-  is skipped without `WARDA_SLOW` (`skipped=1`) and runs with `WARDA_SLOW=1` (`passed=1`).
+  is skipped without `WARDA_SLOW` (`skipped=1`) and runs with `WARDA_SLOW=1` (`passed=1`); an unmarked test in a
+  directory named `slow` still runs (gates match markers, not node names); a `requires_mlx` test is skipped when
+  `mlx` is not importable.
 
 ## Documentation
 

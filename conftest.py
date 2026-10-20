@@ -22,5 +22,5 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         skips.append(("slow", pytest.mark.skip(reason="set WARDA_SLOW=1")))
     for item in items:
         for marker, skip in skips:
-            if marker in item.keywords:
+            if item.get_closest_marker(marker) is not None:
                 item.add_marker(skip)

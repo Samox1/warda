@@ -169,8 +169,8 @@ Key contracts:
 ## Testing & QA
 
 - pytest 9; root `conftest.py` loads the pytester plugin and skips `@pytest.mark.slow` tests unless `WARDA_SLOW=1`
-  and `@pytest.mark.requires_mlx` tests where `mlx` is absent (no `requires_mlx` tests exist yet — `model`/`train`/
-  `sft.py` are untested); `testpaths = ["pretrain", "scripts", "warda"]`, `pythonpath = ["."]`.
+  and `@pytest.mark.requires_mlx` tests where `mlx` is absent (no `requires_mlx` tests exist yet);
+  `testpaths = ["pretrain", "scripts", "warda"]`, `pythonpath = ["."]`.
 - Tests live in `<package>/tests/test_*.py`: plain `test_*` functions with `assert`, `pytest.mark.parametrize`,
   `tmp_path`, `monkeypatch`, local fakes (e.g. fake `gh` calls). No test classes.
 - Covered: `warda/schema` and the slow marker, `harness/pii_gen`, `quality/{textstats,app}`, `sft` Englishization,
