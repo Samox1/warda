@@ -42,7 +42,7 @@ testpaths = ["pretrain", "scripts", "warda"]
 pythonpath = ["."]
 markers = [
     "requires_mlx: needs MLX (Apple Silicon); auto-skipped where mlx is missing",
-    "slow: MLX model loads, fastText models, network; runs only with WARDA_SLOW=1",
+    "slow: MLX model loads, network; runs only with WARDA_SLOW=1",
 ]
 
 [tool.ruff]

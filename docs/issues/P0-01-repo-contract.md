@@ -21,7 +21,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 - `AGENTS.md` at repo root and `CLAUDE.md` as a relative symlink to it.
 - `warda/` package skeleton with `warda/schema.py` holding the shared literals, imported by `pii_gen.py`.
 - pytest / mypy / ruff / pre-commit wired to `warda/`.
-- `WARDA_SLOW` env gate for tests needing MLX, fastText models or network.
+- `WARDA_SLOW` env gate for tests needing MLX model loads or network. The fastText LID model stays a required
+  quick-start download (CI fetches `lid.176.ftz`), so quality tests run in the default suite.
 - Out of scope: any guard logic, service, or hook code.
 
 ## Deliverables
@@ -75,8 +76,9 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 
 ## Automated tests
 
-- `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_TEXT["en"]` positions; every
-  `DEST_CLASS` value is in `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
+- `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_VERB[lang]` key order and `ACTION_TEXT[lang]`
+  length for `pl` and `en` (the positions `ACTION_TEXT` gold indices rely on); every `DEST_CLASS` value is in
+  `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
 - `warda/tests/test_slow_marker.py`: in a `pytester` run using the real root `conftest.py`, a test marked `slow`
   is skipped without `WARDA_SLOW` (`skipped=1`) and runs with `WARDA_SLOW=1` (`passed=1`); an unmarked test in a
   directory named `slow` still runs (gates match markers, not node names); a `requires_mlx` test is skipped when
@@ -89,7 +91,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 
 ## Manual test (human, before the PR)
 
-1. Fresh clone, `uv sync --locked`, `uv run pytest -q` → all green, output lists `warda/tests` files.
+1. Fresh clone, `uv sync --locked`, download the fastText LID model as in the README quick start, `uv run pytest -q`
+   → all green, output lists `warda/tests` files.
 2. `cat CLAUDE.md` prints `AGENTS.md`'s content (symlink works on macOS and Linux).
 3. Open Claude Code in the repo and ask "how do I run the slow tests?" → it answers `WARDA_SLOW=1 uv run pytest -q`
    from `AGENTS.md` without you pasting anything.

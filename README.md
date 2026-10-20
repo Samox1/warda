@@ -9,8 +9,8 @@ Status: research and data stage. No trained Warda model yet.
 
 ## Contents
 
-- `AGENTS.md`: the repository contract for agents and humans — run commands, layout, data formats, rules, hardware
-  (`CLAUDE.md` links to it).
+- [`AGENTS.md`](AGENTS.md): the repository contract for agents and humans — run commands, layout, data formats,
+  rules, hardware (`CLAUDE.md` links to it).
 - `warda/`: product code — shared vocabulary and records (`schema.py`); `guard`, `service`, `hooks`, `bench`,
   `label` and the CLI arrive in later phases.
 - `pretrain/HARNESS_DECIDER_PLAN.md`: team plan (Polish): goals, gates, teams and sign-up table, schedule, tools.
@@ -41,8 +41,9 @@ uv run python -m pretrain.harness.pii_gen --help
 Run every script through `uv run` (it uses `.venv` and keeps it in sync with the lock). To change dependencies, edit
 `pyproject.toml` or use `uv add` / `uv remove`, and commit the updated `uv.lock`.
 
-Read `AGENTS.md` first: it is the contract every agent and human works against (run, layout, data formats, rules,
-hardware). Slow tests — MLX model loads, fastText, network — only run with `WARDA_SLOW=1 uv run pytest -q`.
+Read [`AGENTS.md`](AGENTS.md) first: it is the contract every agent and human works against (run, layout, data
+formats, rules, hardware). Slow tests — MLX model loads, network — only run with `WARDA_SLOW=1 uv run pytest -q`; the
+fastText LID model from the step above is required setup, not a slow test (`uv run pytest -q` fails without it).
 
 Generated data, model weights and run artefacts go to `pretrain/work/` (gitignored). Never commit real personal data,
 work data or secrets: this repository is public.

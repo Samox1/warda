@@ -15,8 +15,10 @@ Run everything from the repo root through `uv run`.
 
 ```bash
 uv sync --locked                                   # .venv with locked runtime + dev deps
+mkdir -p pretrain/work/quality/models && curl -L -o pretrain/work/quality/models/lid.176.bin \
+  https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin   # fastText LID; quality tests need it
 uv run pytest -q                                   # full suite (MLX tests skip where mlx is missing)
-WARDA_SLOW=1 uv run pytest -q                      # slow tests: MLX model loads, fastText, network
+WARDA_SLOW=1 uv run pytest -q                      # also slow tests: MLX model loads, network
 uv run pre-commit install                          # commit + pre-push hooks
 uv run pre-commit run --all-files                  # all commit-stage checks
 uv run pre-commit run --hook-stage pre-push --all-files   # pytest + CodeQL
