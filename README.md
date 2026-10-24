@@ -9,16 +9,21 @@ Status: research and data stage. No trained Warda model yet.
 
 ## Contents
 
+- [`AGENTS.md`](AGENTS.md): the repository contract for agents and humans — run commands, layout, data formats,
+  rules, hardware (`CLAUDE.md` links to it).
+- `warda/`: product code — shared vocabulary and records (`schema.py`); `guard`, `service`, `hooks`, `bench`,
+  `label` and the CLI arrive in later phases.
 - `pretrain/HARNESS_DECIDER_PLAN.md`: team plan (Polish): goals, gates, teams and sign-up table, schedule, tools.
 - `FINDINGS.md`: results and decisions so far, with links to the detailed documents.
 - `pretrain/harness/`: synthetic PII / disclosure dataset generator (`pii_gen.py`) and its tests.
-- `pretrain/`: scratch-model experiments: data pipeline (`data/`), MoE model and pretraining (`model.py`, `train.py`),
-  decision fine-tuning (`sft.py`, `sft/`), distillation (`distill/`), text-quality labelling tool (`quality/`).
-  Details and results: `pretrain/README.md`.
+- `pretrain/`: scratch-model experiments: data pipeline (`data/`), MoE model and pretraining (`model.py`,
+  `train.py`), decision fine-tuning (`sft.py`, `sft/`), distillation (`distill/`), text-quality labelling tool
+  (`quality/`). Details and results: `pretrain/README.md`.
+- `data/`: committed synthetic datasets (later phases).
 - `CONTRIBUTING.md`: how to work here — task board, branches, PRs and PR templates, keeping docs, issues and the
   board up to date.
-- `docs/issues/`: the task catalogue (one file per GitHub issue), synced by `scripts/issues_sync.py`; board:
-  [Warda project](https://github.com/users/pawelkiszczak/projects/2).
+- `docs/`: plans, ADRs and gate records; `docs/issues/` is the task catalogue (one file per GitHub issue), synced
+  by `scripts/issues_sync.py`; board: [Warda project](https://github.com/users/pawelkiszczak/projects/2).
 
 ## Quick start
 
@@ -35,6 +40,14 @@ uv run python -m pretrain.harness.pii_gen --help
 
 Run every script through `uv run` (it uses `.venv` and keeps it in sync with the lock). To change dependencies, edit
 `pyproject.toml` or use `uv add` / `uv remove`, and commit the updated `uv.lock`.
+
+Windows: `CLAUDE.md` is a symlink to `AGENTS.md`, and Git for Windows checks symlinks out as plain text files
+unless enabled. Turn on Developer Mode and clone with `git clone -c core.symlinks=true …`, or point your agent at
+`AGENTS.md` directly.
+
+Read [`AGENTS.md`](AGENTS.md) first: it is the contract every agent and human works against (run, layout, data
+formats, rules, hardware). Slow tests — MLX model loads, network — only run with `WARDA_SLOW=1 uv run pytest -q`; the
+fastText LID model from the step above is required setup, not a slow test (`uv run pytest -q` fails without it).
 
 Generated data, model weights and run artefacts go to `pretrain/work/` (gitignored). Never commit real personal data,
 work data or secrets: this repository is public.

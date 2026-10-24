@@ -21,7 +21,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 - `AGENTS.md` at repo root and `CLAUDE.md` as a relative symlink to it.
 - `warda/` package skeleton with `warda/schema.py` holding the shared literals, imported by `pii_gen.py`.
 - pytest / mypy / ruff / pre-commit wired to `warda/`.
-- `WARDA_SLOW` env gate for tests needing MLX, fastText models or network.
+- `WARDA_SLOW` env gate for tests needing MLX model loads or network. The fastText LID model stays a required
+  quick-start download (CI fetches `lid.176.ftz`), so quality tests run in the default suite.
 - Out of scope: any guard logic, service, or hook code.
 
 ## Deliverables
@@ -33,7 +34,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 - Shared `Policy` dataclass in `warda/schema.py`: `id`, `language`, `text`, `table` (category → destination
   class → action), `exceptions` (list of text clauses). Shared `DecisionInput`: `payload`, `channel`,
   `destination`, `policy: Policy`, `language`, `task: str | None`, `provenance: list[str]`. No gold fields.
-  Runtime boundaries validate these fields; TypedDict annotations alone are not validation.
+  Runtime boundaries validate these fields; TypedDict annotations alone are not validation. Both are
+  `frozen=True`, so a validated record cannot be changed past `__post_init__`.
 
 - `AGENTS.md` sections, in order: "Run" (`uv sync --locked`, `uv run pytest -q`, `uv run pre-commit run
   --all-files`, `WARDA_SLOW=1 uv run pytest -q` for slow tests); "Layout" (`warda/` product code with one line per
@@ -44,12 +46,14 @@ need (actions, categories, destinations, channels) currently live only in `pretr
   `question_id`, `category`, `policy`, `destination`, `action`; link to `warda/schema.py`); "Rules" (no real
   personal data, no work data, no secrets in prompts or code; one task = one branch/worktree named
   `<issue-id>-<slug>`; small PRs; tests pass before merge; agent proposes, human decides on gold labels);
-  "Hardware" (every script has a CPU small-sample flag; strong hardware optional).
+  "Hardware" (new scripts have a CPU small-sample flag, existing gaps named and owned by P1-06; strong hardware
+  optional; README tells Windows users how to get the `CLAUDE.md` symlink).
 - `CLAUDE.md` → symlink `AGENTS.md` (pre-commit `check-symlinks` must pass).
 - `warda/__init__.py` (docstring only), `warda/schema.py` with: `ACTIONS = ("allow", "redact", "ask_user",
   "block")`, `CATEGORIES`, `DEST_CLASSES = ("internal", "client", "llm", "saas", "public")`, `DEST_CLASS: dict[str,
   str]` (the 12 destination ids from `pii_gen.DEST_CLASS`), `CHANNELS: tuple[str, ...]` (the 10 outbound channel
-  ids), `INBOUND_CHANNELS` (3 ids), `LANGUAGES = ("pl", "en")`, and `class Decision(TypedDict)`: `action: str`,
+  ids), `INBOUND_CHANNELS` (3 ids), `LANGUAGES = ("pl", "en")`, and `class Decision(TypedDict)`: `action: Action`
+  (`Action = Literal[...]`, `ACTIONS = get_args(Action)`),
   `confidence: float`, `reason: str`, `redacted_payload: str | None`, `category: str | None`. `pii_gen.py` imports
   `ACTIONS`, `CATEGORIES`,
   `DEST_CLASS` and `DEST_CLASSES` (replacing its `CLASSES`; `_rule` and `CLASS_TEXT` keep working on the same
@@ -57,12 +61,13 @@ need (actions, categories, destinations, channels) currently live only in `pretr
   (`grep -n "^ACTIONS\|^CLASSES\|^DEST_CLASS\|^CATEGORIES" pretrain/harness/pii_gen.py` returns nothing after).
 - Empty packages with `__init__.py`: `warda/guard`, `warda/service`, `warda/hooks`, `warda/bench`, `warda/label`,
   `warda/tests`.
-- `pyproject.toml`: `testpaths = ["pretrain", "scripts", "warda"]`; mypy `files` adds `"warda"`; ruff
-  per-file-ignores add `"warda/tests/**/*.py" = ["S101"]`. `.pre-commit-config.yaml` mypy `files:
-  ^(pretrain|scripts|warda)/`. `.github/workflows/tests.yml` unchanged (it runs `pytest -q` which picks up the new
-  testpaths).
-- `warda/tests/conftest.py` with `slow = pytest.mark.skipif(os.environ.get("WARDA_SLOW") != "1", reason="set
-  WARDA_SLOW=1")` exported for reuse.
+- `pyproject.toml`: `testpaths = ["pretrain", "scripts", "warda"]`; mypy `files` adds `"warda"`; registered
+  markers `requires_mlx` and `slow` (the existing `"**/tests/**/*.py" = ["S101"]` ignore already covers
+  `warda/tests`). `.pre-commit-config.yaml` mypy `files: ^(pretrain|scripts|warda)/`.
+  `.github/workflows/tests.yml` unchanged (it runs `pytest -q` which picks up the new testpaths).
+- Root `conftest.py`: `pytest_collection_modifyitems` skips `@pytest.mark.slow` tests unless `WARDA_SLOW=1` and
+  `@pytest.mark.requires_mlx` tests where `mlx` is not importable. Both conditions are read at collection time
+  (an import-time `skipif` would freeze the environment of whichever session imported the module first).
 
 ## Definition of done
 
@@ -74,10 +79,13 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 
 ## Automated tests
 
-- `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_TEXT["en"]` positions; every
-  `DEST_CLASS` value is in `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
-- `warda/tests/test_slow_marker.py`: a test marked `slow` is skipped without `WARDA_SLOW` (assert via
-  `pytest.mark` introspection in a `pytester` run: `pytester.runpytest()` reports `skipped=1`).
+- `warda/tests/test_schema.py`: `ACTIONS` order equals `pii_gen.ACTION_VERB[lang]` key order and `ACTION_TEXT[lang]`
+  length for `pl` and `en` (the positions `ACTION_TEXT` gold indices rely on); every `DEST_CLASS` value is in
+  `DEST_CLASSES`; every `pii_gen.CHANNELS` key is in `CHANNELS`; `Decision` keys exact.
+- `warda/tests/test_slow_marker.py`: in a `pytester` run using the real root `conftest.py`, a test marked `slow`
+  is skipped without `WARDA_SLOW` (`skipped=1`) and runs with `WARDA_SLOW=1` (`passed=1`); an unmarked test in a
+  directory named `slow` still runs (gates match markers, not node names); a `requires_mlx` test is skipped when
+  `mlx` is not importable.
 
 ## Documentation
 
@@ -86,7 +94,8 @@ need (actions, categories, destinations, channels) currently live only in `pretr
 
 ## Manual test (human, before the PR)
 
-1. Fresh clone, `uv sync --locked`, `uv run pytest -q` → all green, output lists `warda/tests` files.
+1. Fresh clone, `uv sync --locked`, download the fastText LID model as in the README quick start, `uv run pytest -q`
+   → all green, output lists `warda/tests` files.
 2. `cat CLAUDE.md` prints `AGENTS.md`'s content (symlink works on macOS and Linux).
 3. Open Claude Code in the repo and ask "how do I run the slow tests?" → it answers `WARDA_SLOW=1 uv run pytest -q`
    from `AGENTS.md` without you pasting anything.

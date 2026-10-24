@@ -447,6 +447,9 @@ Synthetic typed-decision data for a local data guard in coding harnesses (idea a
 data-guard / permission-gate evidence). The guard reads a data policy, a channel, a destination and the content, then decides
 what to do with it. All people, companies and values are fictional.
 
+The shared literals behind these labels — actions, categories, destination classes and their mapping, channels —
+live in `warda/schema.py`; `pii_gen.py` imports them from there.
+
 ```bash
 uv run python -m pretrain.harness.pii_gen generate --hours 7.5 --workers 16   # resumable
 uv run python -m pretrain.harness.pii_gen build                               # items + manifest
