@@ -177,6 +177,10 @@ i tajną częścią do oficjalnych wyników.
 
 ## Pomysły na one-pagery i slajdy
 
+Gotowa prezentacja (16 slajdów, cały proces od prośby użytkownika do decyzji):
+[PDF](slides/brama-v0/brama-v0.pdf), [GIF](slides/brama-v0/brama-v0.gif), źródła slajdów w HTML:
+[`slides/brama-v0/source/`](slides/brama-v0/source/).
+
 1. **Problem i strażnik** — sekcje 1–2: asystent AI wysyła tekst w świat, ktoś musi stać przy bramie.
 2. **Egzamin jak dla nowego pracownika** — sekcje 3–4: dostajesz regulamin i jedną wiadomość, decydujesz.
 3. **Bliźniaki** — sekcja 5: tabela z Haliną Wróbel jako jeden slajd, próba oszukania jako drugi.
