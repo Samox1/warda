@@ -7,8 +7,10 @@ license = "Apache-2.0"
 # 3.12 only: every dependency is locked and tested together on 3.12, and pyarrow has no wheels past 3.13.
 requires-python = "==3.12.*"
 dependencies = [
-    "mlx>=0.32.4",
-    "mlx-lm>=0.32.2",
+    # MLX is Apple-silicon-only (training) until a training port is separately scoped; the rest of the toolchain
+    # stays installable on Linux/Windows laptops — MLX-dependent code imports it lazily and tests skip by capability.
+    "mlx>=0.32.4; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "mlx-lm>=0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
     "numpy>=2.5.4",
     "tokenizers>=0.23.3",
     "transformers>=5.20.1",
@@ -36,8 +38,13 @@ dev = [
 package = false
 
 [tool.pytest.ini_options]
-testpaths = ["pretrain", "scripts"]
+testpaths = ["pretrain", "scripts", "warda"]
 pythonpath = ["."]
+markers = [
+    "requires_mlx: needs MLX (Apple Silicon); auto-skipped where mlx is missing",
+    "slow: MLX model loads, network; runs only with WARDA_SLOW=1",
+    "requires_lid: needs the fastText LID model; skipped where missing unless CI is set (then it fails)",
+]
 
 [tool.ruff]
 line-length = 120
@@ -65,6 +72,7 @@ ignore = ["E501", "PLR2004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR091
 "pretrain/distill/family_gaps.py" = ["T201"] # CLI metrics are intentionally printed.
 "pretrain/quality/app.py" = ["T201", "S311", "RUF003"] # CLI status and seeded examples are intentional; Mann-Whitney is conventionally punctuated.
 "pretrain/quality/enrich.py" = ["T201"] # CLI progress and summaries are intentionally printed.
+"pretrain/quality/fetch_lid.py" = ["T201"] # CLI reports whether the model was downloaded or already present.
 "pretrain/quality/export_labels.py" = ["T201"] # Export summary is intentionally printed.
 "pretrain/quality/sample.py" = ["T201", "S311", "E402"] # Sampling uses deterministic non-crypto RNG; CLI output and repository-root setup are intentional.
 "pretrain/quality/stylometrix_worker.py" = ["T201", "PLW0603"] # CLI progress and multiprocessing model globals are intentional.
@@ -77,7 +85,7 @@ ignore = ["E501", "PLR2004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR091
 
 [tool.mypy]
 python_version = "3.12"
-files = ["pretrain", "scripts"]
+files = ["pretrain", "scripts", "warda"]
 ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true

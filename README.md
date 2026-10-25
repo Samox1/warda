@@ -9,16 +9,23 @@ Status: research and data stage. No trained Warda model yet.
 
 ## Contents
 
+- [`AGENTS.md`](AGENTS.md): the repository contract for agents and humans — run commands, layout, data formats,
+  rules, hardware (`CLAUDE.md` links to it).
+- `warda/`: product code — shared vocabulary and records (`schema.py`); `guard`, `service`, `hooks`, `bench`,
+  `label` and the CLI arrive in later phases.
 - `pretrain/HARNESS_DECIDER_PLAN.md`: team plan (Polish): goals, gates, teams and sign-up table, schedule, tools.
 - `FINDINGS.md`: results and decisions so far, with links to the detailed documents.
 - `pretrain/harness/`: synthetic PII / disclosure dataset generator (`pii_gen.py`) and its tests.
-- `pretrain/`: scratch-model experiments: data pipeline (`data/`), MoE model and pretraining (`model.py`, `train.py`),
-  decision fine-tuning (`sft.py`, `sft/`), distillation (`distill/`), text-quality labelling tool (`quality/`).
-  Details and results: `pretrain/README.md`.
+- `pretrain/`: scratch-model experiments: data pipeline (`data/`), MoE model and pretraining (`model.py`,
+  `train.py`), decision fine-tuning (`sft.py`, `sft/`), distillation (`distill/`), text-quality labelling tool
+  (`quality/`). Details and results: `pretrain/README.md`.
+- `data/`: committed synthetic datasets (later phases).
+- `docs/performance/APPLE_SILICON.md`: Apple GPU/CPU acceleration policy, exploratory text benchmarks and
+  implementation/validation requirements; preprocessing delivery is tracked in P1-12.
 - `CONTRIBUTING.md`: how to work here — task board, branches, PRs and PR templates, keeping docs, issues and the
   board up to date.
-- `docs/issues/`: the task catalogue (one file per GitHub issue), synced by `scripts/issues_sync.py`; board:
-  [Warda project](https://github.com/users/pawelkiszczak/projects/2).
+- `docs/`: plans, ADRs and gate records; `docs/issues/` is the task catalogue (one file per GitHub issue), synced
+  by `scripts/issues_sync.py`; board: [Warda project](https://github.com/users/pawelkiszczak/projects/2).
 
 ## Quick start
 
@@ -27,8 +34,7 @@ locked in `uv.lock`; uv fetches Python 3.12 itself if it is missing.
 
 ```bash
 uv sync --locked              # creates .venv with the locked runtime + dev dependencies
-mkdir -p pretrain/work/quality/models && curl -L -o pretrain/work/quality/models/lid.176.bin \
-  https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin   # language ID used by quality/ (126 MB)
+uv run python -m pretrain.quality.fetch_lid   # language ID used by quality/ (126 MB, sha256-checked)
 uv run pytest -q
 uv run python -m pretrain.harness.pii_gen --help
 ```
@@ -36,8 +42,28 @@ uv run python -m pretrain.harness.pii_gen --help
 Run every script through `uv run` (it uses `.venv` and keeps it in sync with the lock). To change dependencies, edit
 `pyproject.toml` or use `uv add` / `uv remove`, and commit the updated `uv.lock`.
 
+Windows: `CLAUDE.md` is a symlink to `AGENTS.md`, and Git for Windows checks symlinks out as plain text files
+unless enabled. Turn on Developer Mode and clone with `git clone -c core.symlinks=true …`, or point your agent at
+`AGENTS.md` directly.
+
+Read [`AGENTS.md`](AGENTS.md) first: it is the contract every agent and human works against (run, layout, data
+formats, rules, hardware). Slow tests — MLX model loads, network — only run with `WARDA_SLOW=1 uv run pytest -q`.
+Without the fastText LID model, `uv run pytest -q` skips the LID tests and names the fetch command; under CI
+(`CI` set) they fail instead, so CI never loses them silently.
+
 Generated data, model weights and run artefacts go to `pretrain/work/` (gitignored). Never commit real personal data,
 work data or secrets: this repository is public.
+
+## Apple Silicon acceleration
+
+The project is Apple/MLX-first, not CUDA-first. Use supported Apple GPU execution wherever it improves complete
+pipeline throughput or request latency, together with native CPU processing and bounded data-loading overlap.
+Keep CPU tooling/smokes and portability; GPU utilisation alone is not a success metric.
+
+Preprocessing acceleration is planned in P1-12, not already installed: compare columnar CPU and explicit Metal
+paths, preserve text/dedup/tokenisation semantics, record actual placement/fallbacks and adopt measured wins.
+Training and serving tasks likewise require MLX GPU evidence and tuning. The current MLX trainer cannot use an
+NVIDIA GPU without a separate port. See [the policy and evidence](docs/performance/APPLE_SILICON.md).
 
 ## Development checks
 

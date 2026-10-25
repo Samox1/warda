@@ -7,6 +7,23 @@ past 3.13), managed by uv from the repository root: `uv sync --locked` installs 
 `pyproject.toml` at the versions locked and tested together in `uv.lock`, and every command below runs through
 `uv run`. Data and runs live in `pretrain/work/` (gitignored).
 
+## Apple Silicon execution and acceleration
+
+Use the Apple GPU as much as it usefully accelerates the complete workload: MLX for training/inference and
+optional measured Metal kernels for preprocessing, combined with efficient CPU parsing, columnar filters,
+batching and bounded loading overlap. GPU utilisation is not a substitute for end-to-end speed or correctness.
+
+The current corpus builder is still CPU/native-library processing with multiprocessing; GPU text acceleration
+is planned in P1-12 and its adoption in P1-04. No Polars/ArrowMetal production dependency or preprocessing GPU
+flag is introduced by this policy. The [shared contract](../docs/performance/APPLE_SILICON.md) records local
+exploratory CPU/Metal results, unsupported/fallback cases and the benchmark/parity requirements for adoption.
+Training/SFT/serving tasks must record actual MLX CPU/GPU placement, completed timings, batch/dtype/runtime,
+memory headroom and loading bottlenecks. Preserve explicit CPU smokes on their supported platforms.
+
+MLX training needs a supported Apple Silicon Mac, local or rented; NVIDIA generation endpoints are separate
+from a CUDA training implementation. A CUDA trainer port, GGUF converter or Core ML backend requires separate
+scoping and compatibility checks, not a device flag or an assumed cloud fallback.
+
 ## Pretraining data
 
 `data/build_tokens.py` downloads resumable SpeakLeash JSONL.zst prefixes in parallel with HTTP Range and the selected Hugging
@@ -432,7 +449,8 @@ and lets a person label HIGH / MEDIUM / LOW while seeing those metrics. Design: 
   longest repeated substring, repeated-line/sentence runs → `loop_score`.
 - **Language:** fastText `lid.176.bin` per line (long lines per sentence; units with <20 letters or confidence <0.5
   use Polish cues or inherit the dominant language), character-weighted language shares, `pl_share`, `switch_rate`,
-  Unicode script mix, Polish diacritic / stopword ratios → `multilingual_score`.
+  Unicode script mix, Polish diacritic / stopword ratios → `multilingual_score`. Fetch the model with
+  `uv run python -m pretrain.quality.fetch_lid` (SHA-256 pinned); tests that need it are marked `requires_lid`.
 
 Status (2026-10-10): `work/quality/items.jsonl` holds the final sample of 988 documents. Origins: 608 SpeakLeash
 (HIGH 232 / MEDIUM 175 / LOW 201), 330 FineWeb-2 (by `language_score` band and cluster size), 50 FineWeb-Edu English
@@ -446,6 +464,9 @@ summed and capped at 1.0.
 Synthetic typed-decision data for a local data guard in coding harnesses (idea and evidence: `FINDINGS.md`,
 data-guard / permission-gate evidence). The guard reads a data policy, a channel, a destination and the content, then decides
 what to do with it. All people, companies and values are fictional.
+
+The shared literals behind these labels — actions, categories, destination classes and their mapping, channels —
+live in `warda/schema.py`; `pii_gen.py` imports them from there.
 
 ```bash
 uv run python -m pretrain.harness.pii_gen generate --hours 7.5 --workers 16   # resumable

@@ -9,6 +9,96 @@ closed set — `allow` / `redact` / `ask_user` / `block` — with calibrated con
 Status: research and data stage; no trained Warda model yet. The repo is **public**: never commit real personal data,
 work data, client names or secrets — fixtures and datasets must be fictional.
 
+## Run
+
+Run everything from the repo root through `uv run`.
+
+```bash
+uv sync --locked                                   # .venv with locked runtime + dev deps
+uv run python -m pretrain.quality.fetch_lid        # fastText LID model, sha256-checked (--variant ftz: small)
+uv run pytest -q                                   # full suite (MLX tests skip where mlx is missing)
+WARDA_SLOW=1 uv run pytest -q                      # also slow tests: MLX model loads, network
+uv run pre-commit install                          # commit + pre-push hooks
+uv run pre-commit run --all-files                  # all commit-stage checks
+uv run pre-commit run --hook-stage pre-push --all-files   # pytest + CodeQL
+```
+
+Pipelines (see `pretrain/README.md` for full flags and results):
+
+```bash
+uv run python pretrain/data/build_tokens.py --download --download-only
+uv run python pretrain/data/build_tokens.py
+uv run python pretrain/sft/generate.py
+uv run python pretrain/train.py --name s126m-1b --tokens 1e9 ...      # --resume to continue
+uv run python pretrain/sft.py --base s126m-1b --name s126m-1b-sft --epochs 6
+uv run python -m pretrain.harness.pii_gen generate --hours 7.5 --workers 16
+uv run python -m pretrain.harness.pii_gen build
+uv run python -m pretrain.quality.app --items pretrain/work/quality/items.jsonl --labeller <name> --port 8765
+uv run mlflow ui --backend-store-uri sqlite:///pretrain/work/mlflow.db --port 5000
+uv run python scripts/issues_sync.py lint          # also covered by pytest
+uv run python scripts/issues_sync.py sync --dry-run
+```
+
+Dependencies: edit `pyproject.toml` or use `uv add` / `uv remove`; commit `uv.lock` (pre-commit runs `uv-lock --check`).
+
+## Layout
+
+- `warda/` — product code: `guard/` (detectors and redaction), `service/` (decision service), `hooks/` (agent
+  integrations), `bench/` (evaluation harness), `label/` (labelling app), `schema.py` (shared literals and records),
+  `cli.py` (CLI entry point, P2-06). Later phases fill the subpackages.
+- `pretrain/` — research: scratch-model experiments and dataset tooling (table below).
+- `data/` — committed synthetic datasets (later phases).
+- `docs/` — plans, ADRs, gate records, the task catalogue (`docs/issues/`) and the Apple Silicon acceleration
+  contract (`docs/performance/APPLE_SILICON.md`: backend placement, parity and end-to-end measurement rules).
+- `pretrain/work/` — **gitignored** artefacts: tokens, runs, SFT splits, pools, caches, models, `mlflow.db`.
+
+| Path | Purpose |
+|---|---|
+| `pretrain/` | Model (`model.py`), pretraining (`train.py`), SFT (`sft.py`), prompts (`prompt.py`), MLflow mirror (`track.py`) |
+| `pretrain/data/` | Corpus download → token bins (`build_tokens.py`) |
+| `pretrain/sft/` | Decision-data generation, Jev conversion, stage mixing |
+| `pretrain/distill/` | Bielik-teacher distillation pools, verification, eval filtering, spot-check export |
+| `pretrain/harness/` | Synthetic PII/disclosure dataset generator |
+| `pretrain/quality/` | Text-quality labelling: sampling, features, Starlette app, `static/` UI (Biome-checked) |
+| `scripts/` | `issues_sync.py` (task catalogue ↔ GitHub), `codeql-scan.sh` |
+| `codeql/python-models/` | CodeQL model marking Starlette `Route` request data as remote input |
+
+## Data formats
+
+**Decision item JSONL** — one item per line, shared by `pretrain/sft/generate.py`, `pretrain/sft/convert_jev.py`,
+`pretrain/distill/*` and `pretrain/harness/pii_gen.py build`, consumed by `sft.py`. Fields: `id`, `state`,
+`question`, `options`, `gold`, `type`, `family`, `template_id`, `case_id`, `language`, `split`, `label_method`,
+`source`, `license`; harness items add `question_id`, `category`, `policy`, `destination`, `action`; `target` and
+other metadata are optional. The closed vocabularies behind the fields (actions, categories, destination classes,
+destinations, channels) live in `warda/schema.py`.
+
+## Rules
+
+- No real personal data, no work data, no secrets in prompts or code — the repo is public; fixtures and datasets
+  must be fictional.
+- One task = one branch and worktree from `main`, named `<issue-id>-<slug>` (e.g. `P1-01-tier1-detectors`).
+- Small PRs; tests pass before merge.
+- Agents propose, humans decide on gold labels.
+
+## Agent skills
+
+Load both skills at session start; both stay active every response at the default `full` level.
+
+- **`ponytail`** — every coding task (write, fix, refactor, review, pick deps): YAGNI, reuse code already here,
+  stdlib/installed deps before new ones, shortest working diff, root-cause fixes. It never overrides these
+  guidelines: tests for new behavior, CPU small-sample flags, seeding/resumability, input validation at trust
+  boundaries (Starlette request data) and the public-repo data rules still apply.
+- **`caveman`** — terse chat replies to the user. Chat only: code, comments, commit messages, PR/issue bodies,
+  `docs/` and other committed files stay in normal prose in the doc's existing language (see Code Conventions).
+
+## Hardware
+
+- New scripts must have a CPU small-sample flag (`--limit`, `--hours 0.05`, ...); strong hardware is optional.
+  Not yet true everywhere: `data/build_tokens.py`, `quality/enrich.py` and `quality/sample.py` have none — P1-06
+  audits every `__main__` script and adds them.
+- MLX training is Apple-silicon-only until a training port is separately scoped; non-ML tooling stays installable
+  and testable on ordinary Linux/Windows laptops (MLX deps are platform-marked; tests skip MLX by capability).
+
 ## Architecture & Data Flow
 
 Python 3.12, MLX on Apple Silicon (no CUDA/device selection). Main pipeline:
@@ -34,8 +124,8 @@ Side workflows:
 
 Key contracts:
 
-- **Decision JSONL record**: `id`, `state`, `question`, `options`, `gold`, optional `target` + metadata. Shared by
-  `sft/generate.py`, `sft/convert_jev.py`, `distill/*`, `harness/pii_gen.py build`, consumed by `sft.py`.
+- **Decision JSONL record**: fields listed under [Data formats](#data-formats). Shared by `sft/generate.py`,
+  `sft/convert_jev.py`, `distill/*`, `harness/pii_gen.py build`, consumed by `sft.py`.
 - **Prompt format**: `pretrain/prompt.py` renders Polish/English chat prompts (other languages fall back to English)
   and `letter_ids`. `sft.py` depends on the exact option-line formatting — change both together.
 - **Token bins**: each document framed with one BOS and one EOS; tokenize with `add_special_tokens=False`.
@@ -44,58 +134,13 @@ Key contracts:
 - Model (`pretrain/model.py`): decoder MoE — tied embeddings, GQA + RoPE, top-k experts + shared expert, router
   balance loss/bias; bf16 forward/backward with fp32 masters. `Config()` defaults are what `train.py` uses.
 
-## Key Directories
-
-| Path | Purpose |
-|---|---|
-| `pretrain/` | Model (`model.py`), pretraining (`train.py`), SFT (`sft.py`), prompts (`prompt.py`), MLflow mirror (`track.py`) |
-| `pretrain/data/` | Corpus download → token bins (`build_tokens.py`) |
-| `pretrain/sft/` | Decision-data generation, Jev conversion, stage mixing |
-| `pretrain/distill/` | Bielik-teacher distillation pools, verification, eval filtering, spot-check export |
-| `pretrain/harness/` | Synthetic PII/disclosure dataset generator |
-| `pretrain/quality/` | Text-quality labelling: sampling, features, Starlette app, `static/` UI (Biome-checked) |
-| `pretrain/work/` | **Gitignored** artefacts: tokens, runs, SFT splits, pools, caches, models, `mlflow.db` |
-| `scripts/` | `issues_sync.py` (task catalogue ↔ GitHub), `codeql-scan.sh` |
-| `docs/issues/` | Task catalogue, one file per GitHub issue (source of truth for the board) |
-| `codeql/python-models/` | CodeQL model marking Starlette `Route` request data as remote input |
-
-## Development Commands
-
-Run everything from the repo root through `uv run`.
-
-```bash
-uv sync --locked                                   # .venv with locked runtime + dev deps
-uv run pytest -q                                   # full suite
-uv run pre-commit install                          # commit + pre-push hooks
-uv run pre-commit run --all-files                  # all commit-stage checks
-uv run pre-commit run --hook-stage pre-push --all-files   # pytest + CodeQL
-```
-
-Pipelines (see `pretrain/README.md` for full flags and results):
-
-```bash
-uv run python pretrain/data/build_tokens.py --download --download-only
-uv run python pretrain/data/build_tokens.py
-uv run python pretrain/sft/generate.py
-uv run python pretrain/train.py --name s126m-1b --tokens 1e9 ...      # --resume to continue
-uv run python pretrain/sft.py --base s126m-1b --name s126m-1b-sft --epochs 6
-uv run python -m pretrain.harness.pii_gen generate --hours 7.5 --workers 16
-uv run python -m pretrain.harness.pii_gen build
-uv run python -m pretrain.quality.app --items pretrain/work/quality/items.jsonl --labeller <name> --port 8765
-uv run mlflow ui --backend-store-uri sqlite:///pretrain/work/mlflow.db --port 5000
-uv run python scripts/issues_sync.py lint          # also covered by pytest
-uv run python scripts/issues_sync.py sync --dry-run
-```
-
-Dependencies: edit `pyproject.toml` or `uv add` / `uv remove`; commit `uv.lock` (pre-commit runs `uv-lock --check`).
-
 ## Code Conventions & Common Patterns
 
 - **Formatting/lint**: Ruff (line 120, py312), rules `E,W,F,I,B,UP,SIM,C4,PIE,RUF,PERF,PL,S,N,T20`. `print` (T201) and
   non-crypto `random` (S311) are banned by default — allowed only via **per-file ignores with a reason comment** in
   `pyproject.toml`. Adding a new CLI module that prints/samples means adding its own per-file-ignore entry.
-- **Typing**: mypy over `pretrain` + `scripts` with `check_untyped_defs`, `warn_unused_ignores`. Annotate function
-  signatures; use `TypedDict`/dataclasses for records.
+- **Typing**: mypy over `pretrain`, `scripts` and `warda` with `check_untyped_defs`, `warn_unused_ignores`. Annotate
+  function signatures; use `TypedDict`/dataclasses for records.
 - **CLIs**: `argparse` + `main()` + `if __name__ == "__main__":`. Status via `print(..., flush=True)`; data/distill
   stages also append log files. Fail fast with standard exceptions / `SystemExit` on missing artefacts.
 - **Paths/config**: module-level constants rooted at `pretrain/work/...`; CLI flags override. Some scripts adjust
@@ -118,8 +163,8 @@ Dependencies: edit `pyproject.toml` or `uv add` / `uv remove`; commit `uv.lock` 
   codespell.
 - `.pre-commit-config.yaml` — pinned hooks; blocks commits to `main`, files > 500 KB, secrets, lockfile drift.
 - `.gitleaks.toml` — allowlists only `pretrain/harness/pii_gen.py` (synthetic credential-shaped strings).
-- `.github/workflows/tests.yml` — CI on push to `main` only (macOS 15 arm64): `uv sync --locked`, download
-  `lid.176.ftz`, `HF_HUB_OFFLINE=1 uv run --locked pytest -q`.
+- `.github/workflows/tests.yml` — CI on push to `main` only (macOS 15 arm64): `uv sync --locked`,
+  `fetch_lid --variant ftz`, `HF_HUB_OFFLINE=1 uv run --locked pytest -q`.
 - `.github/PULL_REQUEST_TEMPLATE/{feature,data,experiment,docs}.md` — PR templates.
 - `pretrain/README.md` — pipeline commands, data sources/licences, results. `FINDINGS.md` — decisions and findings.
 - `pretrain/QUALITY_CLASSIFIER.md`, `pretrain/HARNESS_DECIDER_PLAN.md` — design / team plan.
@@ -130,20 +175,26 @@ Dependencies: edit `pyproject.toml` or `uv add` / `uv remove`; commit `uv.lock` 
 - **uv only**, Python `==3.12.*` (uv fetches it). Never `pip install` into `.venv`; always `uv run`.
 - Apple Silicon + MLX/MLX-LM for training; Transformers/HF Hub for tokenizers (Bielik
   `speakleash/Bielik-1.5B-v3.0-Instruct`, APT4 cached in `work/cache/`).
-- External assets not in git: fastText `pretrain/work/quality/models/lid.176.bin` (or `.ftz`), corpora, weights,
-  local LLM servers for `pii_gen`, StyloMetrix venv (`pretrain/quality/setup_stylometrix.sh` →
+- External assets not in git: fastText `pretrain/work/quality/models/lid.176.bin` (or `.ftz`; fetch with
+  `uv run python -m pretrain.quality.fetch_lid`, checksums pinned in `pretrain/quality/fetch_lid.py`), corpora,
+  weights, local LLM servers for `pii_gen`, StyloMetrix venv (`pretrain/quality/setup_stylometrix.sh` →
   `pretrain/.venv-stylometrix`).
 - CodeQL CLI (`brew install --cask codeql`) required by the pre-push hook; emergency skip: `SKIP=codeql git push`.
 - `scripts/issues_sync.py` shells out to an authenticated `gh` CLI.
 
 ## Testing & QA
 
-- pytest 9, no plugins/conftest; `testpaths = ["pretrain", "scripts"]`, `pythonpath = ["."]`.
+- pytest 9; root `conftest.py` loads the pytester plugin and skips `@pytest.mark.slow` tests unless `WARDA_SLOW=1`,
+  `@pytest.mark.requires_mlx` tests where `mlx` is absent (no `requires_mlx` tests exist yet) and
+  `@pytest.mark.requires_lid` tests where the fastText LID model is missing — except under CI (`CI` set), where
+  `requires_lid` tests run and fail instead; `testpaths = ["pretrain", "scripts", "warda"]`, `pythonpath = ["."]`.
 - Tests live in `<package>/tests/test_*.py`: plain `test_*` functions with `assert`, `pytest.mark.parametrize`,
   `tmp_path`, `monkeypatch`, local fakes (e.g. fake `gh` calls). No test classes.
-- Covered: `harness/pii_gen`, `quality/{textstats,app}`, `sft` Englishization, `scripts/issues_sync`. Not covered:
-  `model`, `train`, `sft.py`, `prompt`, `track`, `data/`, `distill/` — verify those with a real smoke run.
-- Quality tests need the fastText LID model present (no skip). PR templates mention slow tests via `WARDA_SLOW=1`.
+- Covered: `warda/schema` and the collection gates, `harness/pii_gen`, `quality/{textstats,app,fetch_lid}`, `sft`
+  Englishization, `scripts/issues_sync`. Not covered: `model`, `train`, `sft.py`, `prompt`, `track`, `data/`,
+  `distill/` — verify those with a real smoke run.
+- Mark tests that call the real LID model `@pytest.mark.requires_lid`. PR templates mention slow tests via
+  `WARDA_SLOW=1`.
 - No coverage tooling or threshold; expectation is tests for new behavior plus the manual test in the PR.
 
 ```bash
@@ -153,7 +204,7 @@ uv run pytest -q pretrain/harness/tests/test_pii_gen.py::test_generated_identifi
 
 ## Workflow & Docs
 
-- Branch `<issue-id>-<slug>` from `main` (e.g. `P1-01-tier1-detectors`); squash-merge, small PRs with `Closes #N`.
+- Squash-merge small PRs with `Closes #N`; branch and worktree naming: see Rules.
 - Commit prefixes: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `build:`, `chore:` (body: `Part of P1-01`).
 - Issue files: `docs/issues/P<phase>-<nn>-<slug>.md`, TOML frontmatter between `+++` (`id`, `title`, `labels`,
   `milestone`, `depends_on`, `estimate_hours`, `hardware`, `github_issue = 0` for new), seven sections in order:
