@@ -1,0 +1,14 @@
+{
+  "device": "cuda",
+  "dtype": "bfloat16",
+  "revision": "6bf1d9a06a9d6d847b8620d06775298d8763f0e5",
+  "name": "Bielik-PL-Minitron-7B-v3.0-Instruct",
+  "decider": "hf",
+  "model": "speakleash/Bielik-PL-Minitron-7B-v3.0-Instruct",
+  "items": 108,
+  "dataset_sha256": "659768b9c75b47ea8111497fc0b4e00c4e4844e75cc1753c9e4063aaeb2e3b30",
+  "states_sha256": "cf566607a6eb92e8bef08fa7da394d7c353d21b13941c2c06296146b278eb643",
+  "hardware": "Linux x86_64, NVIDIA GeForce RTX 3090",
+  "seconds": 85.1,
+  "date": "2026-10-25"
+}
