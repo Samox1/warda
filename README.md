@@ -21,8 +21,9 @@ Status: research and data stage. No trained Warda model yet.
   (`quality/`). Details and results: `pretrain/README.md`.
 - `data/brama/`: Brama benchmark v0 examples (fictional), example policies and card (`CARD.md`); design in
   `docs/bench/BRAMA.md`.
-- `warda/bench/`: Brama validator, metrics and pilot runner (`run_brama.py`); pilot results in
-  `docs/bench/results/brama-v0/`, report in `docs/bench/reports/`.
+- `warda/bench/`: Brama validator, metrics, pilot runner (`run_brama.py`) and System-1 shim (`systemone_shim.py`);
+  pilot results in `docs/bench/results/brama-v0/`, report in `docs/bench/reports/`, decider list in
+  `docs/bench/brama-v0-models.md`, plain Polish summary in `docs/bench/BRAMA_PROSTO.md`.
 - `docs/performance/APPLE_SILICON.md`: Apple GPU/CPU acceleration policy, exploratory text benchmarks and
   implementation/validation requirements; preprocessing delivery is tracked in P1-12.
 - `CONTRIBUTING.md`: how to work here — task board, branches, PRs and PR templates, keeping docs, issues and the

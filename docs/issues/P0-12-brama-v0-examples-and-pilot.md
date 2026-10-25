@@ -35,7 +35,7 @@ two Bielik v3.0 instruct models (7B, 11B) as general-LLM reference rows. The lis
 - `warda/bench/brama.py`, `warda/bench/run_brama.py`, `warda/bench/systemone_shim.py`,
   `warda/bench/tests/test_brama_examples.py`, `warda/bench/tests/test_run_brama_systemone.py`.
 - `docs/bench/BRAMA.md` (v0 record against P0-11), `docs/bench/brama-v0-models.md`, `docs/bench/results/brama-v0/`,
-  `docs/bench/reports/brama-v0-pilot-2026-10-25.md`.
+  `docs/bench/reports/brama-v0-pilot-2026-10-25.md`, `docs/bench/BRAMA_PROSTO.md` (plain Polish summary).
 - `docs/decisions/ADR-draft-brama-open-decisions.md`; follow-up `docs/issues/P1-13-brama-dev-and-official-v05.md`.
 
 ## Definition of done
@@ -57,8 +57,8 @@ two Bielik v3.0 instruct models (7B, 11B) as general-LLM reference rows. The lis
 
 ## Documentation
 
-- `docs/bench/BRAMA.md`, `data/brama/CARD.md`, the pilot report; `README.md` Contents and `AGENTS.md` (commands,
-  layout, Brama item format).
+- `docs/bench/BRAMA.md`, `docs/bench/BRAMA_PROSTO.md`, `data/brama/CARD.md`, the pilot report; `README.md` Contents
+  and `AGENTS.md` (commands, layout, Brama item format).
 
 ## Manual test (human, before the PR)
 

@@ -120,31 +120,52 @@ zaliczyć grupę, trzeba naprawdę zrozumieć, **dokąd** idzie tekst i **co mó
 
 ## 9. Co widać na razie (wstępnie)
 
-Testujemy głównie **modele decyzyjne** (takie, które od razu zwracają prawdopodobieństwa opcji, bez pisania
-tekstu) do ~14 mld parametrów, plus dwa Bieliki jako punkt odniesienia. Druga runda jeszcze trwa; liczby poniżej
-pochodzą z bieżącego `results/brama-v0/scores.json`, nie z zatwierdzonego raportu.
+Przetestowaliśmy **26 modeli**: 21 modeli decyzyjnych (takich, które od razu zwracają prawdopodobieństwa opcji, bez
+pisania tekstu) do ~12 mld parametrów, trzy małe klasyfikatory GLiNER od Fastino i dwa Bieliki, czyli zwykłe
+modele czatowe, jako punkt odniesienia. Główna rodzina to **basal** (Remek Kinas). Pełne wyniki:
+[`reports/brama-v0-pilot-2026-10-25.md`](reports/brama-v0-pilot-2026-10-25.md), lista modeli:
+[`brama-v0-models.md`](brama-v0-models.md).
 
-| Strażnik | Trafność | Łapie wycieków (przy ≤ 5 % fałszywych alarmów) |
-|---|---|---|
-| basal-omni-1.0-mini (7,9 mld) | ~80 % | ~78 % |
-| pplx-decider-flash v1.2 (4,5 mld) | ~78 % | ~75 % |
-| d3-mini (4,5 mld) | ~72 % | ~78 % |
-| basal-2.0-4.5B | ~71 % | ~66 % |
-| prosta reguła tier-1 | ~61 % | — (nie ma progu) |
-| Bielik-PL-Minitron-7B (zwykły czat-model) | ~57 % | ~20 % |
-| zawsze przepuść | ~49 % | 0 % |
+| Strażnik | Wielkość | Trafność | Łapie wycieków (przy ≤ 5 % fałszywych alarmów) |
+|---|---|---|---|
+| **basal-omni-1.1-max** (najlepszy) | 12 mld | ~90 % | 100 % |
+| Winnow-12B | 12 mld | ~88 % | ~96 % |
+| basal-omni-1.0-max | 12 mld | ~88 % | ~98 % |
+| Bespoke-Nimble-9B | 9 mld | ~87 % | ~75 % |
+| h2o-lightning-4b (najlepszy do 8 mld) | 4,7 mld | ~86 % | ~69 % |
+| basal-2.0-max | 11 mld | ~80 % | ~93 % |
+| basal-omni-1.0-mini | 7,9 mld | ~80 % | ~78 % |
+| basal-2.0-4.5B | 4,8 mld | ~71 % | ~66 % |
+| prosta reguła tier-1 | — | ~61 % | 0 % |
+| Bielik-PL-11B (zwykły czat-model) | 11 mld | ~55 % | ~64 % |
+| Bielik-PL-Minitron-7B (zwykły czat-model) | 7,5 mld | ~57 % | ~20 % |
+| zawsze przepuść | — | ~49 % | 0 % |
+| GLiNER od Fastino (najlepszy wariant) | 0,3 mld | ~34 % | ~7 % |
 
 Najciekawsze obserwacje:
 
-- **Najlepsze modele decyzyjne wyraźnie biją prostą regułę.** Zwykły model czatowy (Bielik 7B) już nie: czyta treść,
-  ale prawie nie reaguje na to, dokąd ona idzie, i nigdy nie pyta człowieka.
-- **Bliźniaki są trudne.** Nawet najlepszy model zalicza w całości tylko ok. połowę grup.
-- **Małe modele-klasyfikatory (GLiNER) poległy** — poniżej „zawsze przepuść”. Dla nich polityka jest za długa.
-- **Sztuczki z „zatwierdzone przez IOD” najlepsze modele zwykle przejrzały**, słabsze nie.
+- **Modele decyzyjne wyraźnie biją prostą regułę, zwykłe modele czatowe nie.** 14 z 21 modeli decyzyjnych jest
+  lepszych od reguły tier-1 w sposób, który nie jest przypadkiem. Oba Bieliki nie: czytają treść, ale prawie nie
+  reagują na to, dokąd ona idzie, i nigdy nie pytają człowieka.
+- **Czołówki nie da się jeszcze rozstrzygnąć.** Pierwsze cztery modele dzielą 2–3 punkty, a przy 108 zadaniach to
+  może być przypadek. Benchmark odróżnia rodziny modeli, ale jeszcze nie wskaże jednego zwycięzcy.
+- **Douczenie do decyzji robi różnicę.** basal-2.0-max to Bielik 11B douczony do podejmowania decyzji: ma o 25
+  punktów wyższą trafność niż ten sam Bielik użyty jak zwykły czat.
+- **Większy pomaga w obrębie rodziny, ale nie zawsze między rodzinami.** h2o-lightning-4b (4,7 mld) ma lepszą
+  trafność niż pięć modeli 11–12 mld.
+- **Bliźniaki są trudne.** Nawet najlepszy model zalicza w całości ok. 71 % grup. Najtrudniejsze są mozaika (T2),
+  różne miejsca (T5), czytanie polityki (T6) i dane testowe czy prawdziwe (T7).
+- **„Zapytaj człowieka” dzieli modele.** Z 11 zadań, w których należało zapytać, Nimble trafia 10, najlepsze basale
+  7, a Bieliki żadnego.
+- **Małe klasyfikatory GLiNER poległy**: wypadają poniżej „zawsze przepuść”, bo polityka jest dla nich za długa.
+- **Sztuczkę z „zatwierdzone przez IOD” najlepsze modele zwykle przejrzały**, słabsze nie (Winnow-12B dał się nabrać
+  na jedno takie zadanie).
 
 ## 10. Uczciwie o ograniczeniach
 
-- **To wersja pokazowa: 108 zadań.** Różnice poniżej ~10–15 punktów procentowych mogą być przypadkiem.
+- **To wersja pokazowa: 108 zadań.** Różnice w trafności poniżej ~10 punktów procentowych mogą być przypadkiem.
+- **Modele działały w różnej precyzji** (pełnej albo skompresowanej do 8 bitów, żeby zmieściły się na karcie
+  graficznej); nie sprawdzaliśmy, ile to zmienia. Czasy odpowiedzi nie są porównywalne.
 - **Zadania i poprawne odpowiedzi napisał agent AI**, a nie niezależni ludzie. Nikt jeszcze ich nie sprawdził
   podwójnie ani nie zatwierdził pod kątem RODO. Wynik nie może służyć do wyboru modelu.
 - **Tylko dwie wymyślone polityki.** Nie wiemy jeszcze, jak modele radzą sobie z polityką, jakiej nigdy nie widziały.

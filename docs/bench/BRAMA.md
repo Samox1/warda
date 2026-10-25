@@ -2,7 +2,8 @@
 
 Status: **v0, examples split only**. This file records what the v0 example set and pilot runner implement from the
 P0-11 design ([`docs/issues/P0-11-brama-benchmark-design.md`](../issues/P0-11-brama-benchmark-design.md); plain
-Polish summary in `docs/issues/pl/P0-11-brama-benchmark-design_PROSTO.md`). Where this file is silent, the P0-11
+Polish summaries in `docs/issues/pl/P0-11-brama-benchmark-design_PROSTO.md` and
+[`BRAMA_PROSTO.md`](BRAMA_PROSTO.md)). Where this file is silent, the P0-11
 proposal stands. The review meeting required by P0-11 has **not** happened yet; every rule below is a proposal.
 
 Files:
@@ -17,6 +18,7 @@ Files:
 - `docs/bench/brama-v0-models.md`: the deciders of the pilot (admission rule, revisions, how each was run).
 - `warda/bench/systemone_shim.py`: serves decision models that ship only a Python API as `POST /v1/systemone`.
 - `docs/bench/reports/brama-v0-pilot-2026-10-25.md`: pilot report.
+- `docs/bench/BRAMA_PROSTO.md`: Brama and the pilot in plain Polish, for non-technical readers.
 
 ## Goal and construct
 

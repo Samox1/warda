@@ -45,7 +45,8 @@ before any score on this set is used for a decision.
 
 ## Uses
 
-- Intended: checking the Brama format, rules and runner; smoke-testing deciders; sanity pilots.
+- Intended: checking the Brama format, rules and runner; smoke-testing deciders; sanity pilots (first one:
+  `docs/bench/reports/brama-v0-pilot-2026-10-25.md`).
 - Not intended: headline claims, model selection, gate decisions (n is too small and gold is unreviewed), training
   or prompt tuning for an official Brama run.
 
