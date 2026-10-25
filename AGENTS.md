@@ -40,6 +40,9 @@ uv run python scripts/issues_sync.py sync --dry-run
 uv run python -m warda.bench.run_brama run --decider tier1        # Brama v0 pilot; --limit N for a smoke run
 uv run --with torch python -m warda.bench.run_brama run --decider hf --model <hf-id>
 uv run --with "gliner2[local]" python -m warda.bench.run_brama run --decider gliner2 --model <hf-id>
+uv run python -m warda.bench.run_brama run --decider systemone --endpoint http://127.0.0.1:8001 --model <hf-id>
+                                                                 # any POST /v1/systemone server; models with only a
+                                                                 # Python API: warda.bench.systemone_shim (own env)
 uv run python -m warda.bench.run_brama report                     # scores every run in docs/bench/results/brama-v0/
 ```
 
