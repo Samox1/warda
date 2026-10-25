@@ -14,7 +14,9 @@ Files:
 - `warda/bench/brama.py`: loader, validator, decider view (R-12), metrics and cluster bootstrap.
 - `warda/bench/run_brama.py`: pilot runner (`run`, `report`).
 - `docs/bench/results/brama-v0/`: per-decider predictions (ids and probabilities only) and `scores.json`.
-- `docs/bench/reports/brama-v0-pilot-2026-10-25.md`: first pilot report.
+- `docs/bench/brama-v0-models.md`: the deciders of the pilot (admission rule, revisions, how each was run).
+- `warda/bench/systemone_shim.py`: serves decision models that ship only a Python API as `POST /v1/systemone`.
+- `docs/bench/reports/brama-v0-pilot-2026-10-25.md`: pilot report.
 
 ## Goal and construct
 
@@ -132,10 +134,12 @@ synthetic policies only, no rewrite verifier, item authors overlap with whoever 
 
 ## Pros and cons
 
-As P0-11. The v0 pilot adds one observation: neither a 7B Polish instruction model (Bielik) nor Fastino's zero-shot
-GLiNER2.5-Decide classifiers beats the tier-1 rule alone. Bielik is not distinguishable from tier-1 on accuracy at
-this n, and the GLiNER models score below the `always_allow` floor; no decider solves a T2–T6 contrast group, so the
-benchmark is far from saturated.
+As P0-11. The v0 pilot adds three observations. System-1 decision models separate clearly from the tier-1 rule
+(14 of 21 above it with a paired interval clear of zero; the best, basal-omni-1.1-max, at 89.8 % acceptable accuracy
+and 100 % Catch@UIR5), while general instruction LLMs (Bielik 7B, 11B) and Fastino's zero-shot GLiNER2.5-Decide
+classifiers do not. The top four models are not distinguishable at n = 108, so v0 can rank families but not pick a
+model. And no decider solves more than 71 % of the contrast groups, with T2 and T5–T7 hardest, so the benchmark is far
+from saturated.
 
 ## Versioning and retirement
 
